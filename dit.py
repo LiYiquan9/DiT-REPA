@@ -114,6 +114,18 @@ class FinalLayer(nn.Module):
         x = self.linear(x)
         return x
 
+
+def build_projector_mlp(hidden_size, projector_dim, z_dim):
+    """Build a projector MLP to map DiT features to encoder feature space."""
+    return nn.Sequential(
+        nn.Linear(hidden_size, projector_dim),
+        nn.SiLU(),
+        nn.Linear(projector_dim, projector_dim),
+        nn.SiLU(),
+        nn.Linear(projector_dim, z_dim),
+    )
+
+
 class DiT(nn.Module):
     def __init__(
         self,
@@ -128,6 +140,10 @@ class DiT(nn.Module):
         class_dropout_prob=0.1,
         num_classes=1000,
         learn_sigma=True,
+        # REPA parameters
+        z_dims=None,  # List of encoder embedding dimensions for projectors
+        encoder_depth=None,  # Layer at which to extract features for alignment
+        projector_dim=2048,  # Hidden dimension of projector MLP
     ):
         super().__init__()
         self.learn_sigma = learn_sigma
@@ -136,6 +152,11 @@ class DiT(nn.Module):
         self.patch_size = patch_size
         self.num_heads = num_heads
         self.num_classes = num_classes
+        self.dim = dim
+        
+        # REPA settings
+        self.z_dims = z_dims if z_dims is not None else []
+        self.encoder_depth = encoder_depth if encoder_depth is not None else depth // 2
         
         self.x_embedder = PatchEmbed(input_size, patch_size, in_channels, dim)
         self.t_embedder = TimestepEmbedder(dim)
@@ -155,6 +176,15 @@ class DiT(nn.Module):
         self.blocks = nn.ModuleList([
             DiTBlock(dim, num_heads, mlp_ratio) for _ in range(depth)
         ])
+        
+        # REPA projectors
+        if len(self.z_dims) > 0:
+            self.projectors = nn.ModuleList([
+                build_projector_mlp(dim, projector_dim, z_dim) for z_dim in self.z_dims
+            ])
+        else:
+            self.projectors = None
+        
         self.final_layer = FinalLayer(dim, patch_size, self.out_channels)
         
         self.initialize_weights()
@@ -210,15 +240,18 @@ class DiT(nn.Module):
         imgs = x.reshape(shape=(x.shape[0], c, h * p, h * p))
         return imgs
 
-    def forward(self, x, t, y):
+    def forward(self, x, t, y, return_features=False):
         """
         Forward pass of DiT.
         x: (N, C, H, W) tensor of spatial inputs (images or latent representations of images)
         t: (N,) tensor of diffusion timesteps
         y: (N,) tensor of class labels
+        return_features: If True, also return projected intermediate features for REPA
         """
         H, W = x.shape[-2:]
         x = self.x_embedder(x) + self.pos_embed  # (N, T, D), where T = H * W / patch_size ** 2
+        N, T, D = x.shape
+        
         #repeat register token
         r = repeat(
             self.register_tokens, 
@@ -235,14 +268,26 @@ class DiT(nn.Module):
             y = self.y_embedder(y, self.training)    # (N, D)
         c = c + y                                # (N, D)
         
+        zs = None
+        raw_features = None
         for i, block in enumerate(self.blocks):
             x = block(x, c)                      # (N, T, D)
+            # Extract features at encoder_depth for REPA
+            if return_features and (i + 1) == self.encoder_depth:
+                # Only use the patch tokens (not register tokens) for REPA
+                x_patches, _ = unpack(x, ps, 'b * d')
+                raw_features = x_patches  # Store raw features
+                if self.projectors is not None:
+                    zs = [projector(x_patches.reshape(-1, D)).reshape(N, T, -1) for projector in self.projectors]
             
         #unpack cls token and register token
         x, _ = unpack(x, ps, 'b * d')
         
         x = self.final_layer(x, c)                # (N, T, patch_size ** 2 * out_channels)
         x = self.unpatchify(x)                   # (N, out_channels, H, W)
+        
+        if return_features:
+            return x, zs, raw_features
         return x
 
     def forward_with_cfg(self, x, t, y, cfg_scale):

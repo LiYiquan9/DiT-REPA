@@ -26,7 +26,7 @@ class FIDEvaluation:
         sampler,
         channels=3,
         num_classes=None,
-        stats_dir="./results",
+        stats_dir="results",
         device="cuda",
         num_fid_samples=10000,
         inception_block_idx=2048,
@@ -82,7 +82,7 @@ class FIDEvaluation:
                 real_features = self.calculate_inception_features(real_samples)
                 stacked_real_features.append(real_features)
             stacked_real_features = (
-                torch.cat(stacked_real_features, dim=0).cpu().numpy()
+                torch.cat(stacked_real_features, dim=0).float().cpu().numpy()
             )
             m2 = np.mean(stacked_real_features, axis=0)
             s2 = np.cov(stacked_real_features, rowvar=False)
@@ -104,7 +104,7 @@ class FIDEvaluation:
             fake_samples = self.sampler.sample(batch_size=batch, cfg_scale=cfg_scale, sample_steps=sample_steps)
             fake_features = self.calculate_inception_features(fake_samples)
             stacked_fake_features.append(fake_features)
-        stacked_fake_features = torch.cat(stacked_fake_features, dim=0).cpu().numpy()
+        stacked_fake_features = torch.cat(stacked_fake_features, dim=0).float().cpu().numpy()
         m1 = np.mean(stacked_fake_features, axis=0)
         s1 = np.cov(stacked_fake_features, rowvar=False)
 
