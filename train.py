@@ -22,7 +22,7 @@ import wandb
 def parse_args():
     parser = argparse.ArgumentParser(description="Train DiT with optional REPA alignment")
     # Training
-    parser.add_argument("--n_steps", type=int, default=200000, help="Total training steps")
+    parser.add_argument("--n_steps", type=int, default=100000, help="Total training steps")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     # REPA
