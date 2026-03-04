@@ -11,6 +11,11 @@ conda env create -f environment.yml
 conda activate dit
 ```
 
+## Training
+```
+python train.py --use_repa --proj_coeff 0.5 --encoder_type dinov2 --encoder_size s --encoder_depth 6
+```
+
 ## Sampling
 You can sample from the model using the `Sampler` class in `sampler.py`.
 ```python
