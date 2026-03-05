@@ -43,6 +43,14 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    print("=" * 50)
+    print("Training Configuration:")
+    print("=" * 50)
+    for k, v in vars(args).items():
+        print(f"  {k}: {v}")
+    print("=" * 50)
+    
     n_steps = args.n_steps
     device = "cuda" if torch.cuda.is_available() else "cpu"
     batch_size = args.batch_size
