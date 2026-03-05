@@ -1,5 +1,6 @@
 from dit import DiT
 import os
+import argparse
 from datetime import datetime
 import torch
 import torch.nn.functional as F
@@ -18,17 +19,40 @@ import moviepy.editor as mpy
 import wandb
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train DiT with optional REPA alignment")
+    # Training
+    parser.add_argument("--n_steps", type=int, default=100000, help="Total training steps")
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
+    # REPA
+    parser.add_argument("--use_repa", action="store_true", default=False, help="Enable REPA alignment loss")
+    parser.add_argument("--encoder_type", type=str, default="dinov2", help="Encoder type for REPA")
+    parser.add_argument("--encoder_size", type=str, default="s", choices=["s", "b", "l", "g"], help="Encoder size")
+    parser.add_argument("--proj_coeff", type=float, default=0.5, help="Weight for alignment loss")
+    parser.add_argument("--encoder_depth", type=int, default=6, help="Layer at which to extract DiT features for alignment (model has 12 layers)")
+    # Model
+    parser.add_argument("--dim", type=int, default=384, help="Model hidden dimension")
+    parser.add_argument("--depth", type=int, default=12, help="Number of transformer blocks")
+    parser.add_argument("--num_heads", type=int, default=6, help="Number of attention heads")
+    parser.add_argument("--class_dropout_prob", type=float, default=0.1, help="Class label dropout probability for CFG")
+    # Data
+    parser.add_argument("--data_root", type=str, default="/mnt/nas2/cifar10", help="Dataset root directory")
+    return parser.parse_args()
+
+
 def main():
-    n_steps = 200000
+    args = parse_args()
+    n_steps = args.n_steps
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    batch_size = 128
+    batch_size = args.batch_size
     
     # REPA configuration
-    use_repa = True  # Set to False to disable alignment loss
-    encoder_type = "dinov2"
-    encoder_size = "s"  # "s", "b", "l", "g"
-    proj_coeff = 0.5  # Weight for alignment loss
-    encoder_depth = 6  # Layer at which to extract DiT features for alignment
+    use_repa = args.use_repa
+    encoder_type = args.encoder_type
+    encoder_size = args.encoder_size
+    proj_coeff = args.proj_coeff
+    encoder_depth = args.encoder_depth
     
     run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     ckpt_dir = f"checkpoints/{run_timestamp}"
@@ -37,7 +61,7 @@ def main():
     os.makedirs(img_dir, exist_ok=True)
 
     dataset = torchvision.datasets.CIFAR10(
-        root="/mnt/nas2/cifar10",
+        root=args.data_root,
         train=True,
         download=True,
         transform=T.Compose([T.ToTensor(), T.RandomHorizontalFlip()]),
@@ -66,18 +90,18 @@ def main():
         input_size=32,
         patch_size=2,
         in_channels=3,
-        dim=384,
-        depth=12,
-        num_heads=6,
+        dim=args.dim,
+        depth=args.depth,
+        num_heads=args.num_heads,
         num_classes=10,
         learn_sigma=False,
-        class_dropout_prob=0.1,
+        class_dropout_prob=args.class_dropout_prob,
         # REPA parameters
         z_dims=z_dims,
         encoder_depth=encoder_depth,
     ).to(device)
     model_ema = LitEma(model)
-    optimizer = AdamW8bit(model.parameters(), lr=1e-4, weight_decay=0.0)
+    optimizer = AdamW8bit(model.parameters(), lr=args.lr, weight_decay=0.0)
     
     sampler = RectifiedFlow(model)
     scaler = torch.cuda.amp.GradScaler()
