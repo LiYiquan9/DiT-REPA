@@ -28,7 +28,7 @@ class FIDEvaluation:
         num_classes=None,
         stats_dir="results",
         device="cuda",
-        num_fid_samples=10000,
+        num_fid_samples=50000,
         inception_block_idx=2048,
     ):
         self.batch_size = batch_size

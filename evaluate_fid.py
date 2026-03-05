@@ -2,8 +2,8 @@
 Evaluate FID score from a pretrained checkpoint.
 
 Usage:
-    python evaluate_fid.py --checkpoint checkpoints/20260219_152042/step_30000.pth
-    python evaluate_fid.py --checkpoint checkpoints/20260219_155341/step_30000.pth --use_repa
+    python evaluate_fid.py --checkpoint checkpoints/20260219_152042/step_100000.pth
+    CUDA_VISIBLE_DEVICES=1 python evaluate_fid.py --checkpoint checkpoints/20260219_155341/step_100000.pth --use_repa
 """
 import argparse
 import torch
@@ -26,7 +26,7 @@ def main():
     parser.add_argument("--z_dim", type=int, default=384, help="Encoder embedding dim for REPA (384 for DINOv2-S)")
     parser.add_argument("--cfg_scale", type=float, default=5.0, help="CFG scale for sampling")
     parser.add_argument("--sample_steps", type=int, default=25, help="Number of sampling steps")
-    parser.add_argument("--batch_size", type=int, default=256, help="Batch size for FID evaluation")
+    parser.add_argument("--batch_size", type=int, default=1024, help="Batch size for FID evaluation")
     parser.add_argument("--data_root", type=str, default="/mnt/nas2/cifar10", help="CIFAR-10 data root")
     args = parser.parse_args()
     

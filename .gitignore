@@ -3,3 +3,6 @@ images
 results
 wandb
 *.pth
+launch.sh
+checkpoints
+.vscode

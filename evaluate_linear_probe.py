@@ -6,10 +6,10 @@ how well the learned representations capture semantic information for classifica
 
 Usage:
     # For models trained WITHOUT REPA (uses raw DiT features)
-    python evaluate_linear_probe.py --checkpoint checkpoints/20260219_152042/step_30000.pth --num_epochs 100
+    python evaluate_linear_probe.py --checkpoint checkpoints/20260219_152042/step_199999.pth --num_epochs 100
     
     # For models trained WITH REPA (uses projected DiT features)
-    CUDA_VISIBLE_DEVICES=1 python evaluate_linear_probe.py --checkpoint checkpoints/20260219_155341/step_30000.pth --use_repa --num_epochs 100
+    CUDA_VISIBLE_DEVICES=1 python evaluate_linear_probe.py --checkpoint checkpoints/20260219_155341/step_199999.pth --use_repa --num_epochs 100
     
     # Custom options
     python evaluate_linear_probe.py --checkpoint ckpt.pth --use_repa --timestep 0.25 --lr 0.01

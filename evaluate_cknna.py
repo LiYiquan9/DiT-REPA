@@ -6,10 +6,10 @@ CKNNA measures how well the DiT's intermediate representations align with a pret
 
 Usage:
     # For models trained WITHOUT REPA (uses raw DiT features)
-    python evaluate_cknna.py --checkpoint checkpoints/20260219_152042/step_30000.pth --num_samples 5000
+    python evaluate_cknna.py --checkpoint checkpoints/20260219_152042/step_199999.pth --num_samples 20000
     
     # For models trained WITH REPA (uses projected DiT features)
-    python evaluate_cknna.py --checkpoint checkpoints/20260219_155341/step_30000.pth --use_repa --num_samples 5000
+    CUDA_VISIBLE_DEVICES=1 python evaluate_cknna.py --checkpoint checkpoints/20260219_155341/step_199999.pth --use_repa --num_samples 20000
     
     # Custom options
     python evaluate_cknna.py --checkpoint ckpt.pth --use_repa --topk 10 --encoder_depth 6
