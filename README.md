@@ -17,39 +17,10 @@ python train.py --use_repa --proj_coeff 0.5 --encoder_type dinov2 --encoder_size
 ```
 
 ## Sampling
-You can sample from the model using the `Sampler` class in `sampler.py`.
-```python
-from sampler import Sampler
-sampler = Sampler(model) # A trained DiT model
-samples = sampler.sample(10) # Sample 10 images
-# [10, C, H, W]
 ```
-For visualization, I use `moviepy` to generate gifs from the intermediate steps of samples.
+python evaluate_fid.py --checkpoint checkpoints/20260219_152042/step_100000.pth
 
-![CIFAR10 Gif](assets/step199999_cfg5.0_ema.gif)
+python evaluate_cknna.py --checkpoint checkpoints/20260219_152042/step_100000.pth --num_samples 20000
 
-## Training
-To train a DiT, you can use the `train.py` script.
-```bash
-python train.py
+python evaluate_linear_probe.py --checkpoint checkpoints/20260219_152042/step_100000.pth --num_epochs 100
 ```
-I use `wandb` for logging. If you don't want to use it, you can remove the logger in `train.py`. You can also check the log of the latest training on wandb [here](https://wandb.ai/archimickey/dit-cfm/runs/19ylvvzr?nw=nwuserarchimickey). I have trained the model on CIFAR10 dataset for 200k steps. The model is not converged yet by looking at the FID, more training may lead to better results.
-
-
-## Techniques and Tricks
-### Flow Matching
-Instead of using the standard Gaussian Diffusion, I use the Flow Matching technique from the paper [Flow Matching for Generative Modeling](https://arxiv.org/abs/2210.02747) by using the [torchcfm](https://github.com/atong01/conditional-flow-matching/tree/main). This technique helps to sample the images faster and more efficiently.
-### Tailored SNR Samplers
-I implement the Logit-Normal Sampling for the timesteps. The technique is used in the Research Paper of [Stable Diffusion 3](https://arxiv.org/pdf/2403.03206). This is useful for biasing the intermediate steps during the training of the diffusion model.
-### ViT with registers
-I add register tokens to the Transformer Model which is from the paper [Vision Transformers need registers](https://arxiv.org/pdf/2309.16588). The paper shows that adding additional register tokens can improve the performance of the model.
-### Classifier-Free Guidance
-For the DiT model, I implement another forward function for classifier-free guidance. This is useful for sampling from the model.
-Samples with 1.0 and 2.5 cfg scale:
-
-![CIFAR10 cfg=1.0](assets/step199999_cfg1.0_ema.png)
-
-![CIFAR10 cfg=2.5](assets/step199999_cfg2.5_ema.png)
-
-### EMA
-I use the Exponential Moving Average (EMA) for the model weights. This helps to stabilize the training and improve the performance of the model.
